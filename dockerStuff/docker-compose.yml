@@ -2,7 +2,7 @@ version: "3"
 
 services:
   sonarqube:
-    image: sonarqube:7.9.5-community
+    image: sonarqube:7.9.5-community #oops really old version, testing to get newer version
     depends_on:
       - init
     environment:
