@@ -1,0 +1,28 @@
+import requests
+import json
+from requests.auth import HTTPBasicAuth
+
+#function to format json better
+def jprint(obj):
+    text = json.dumps(obj, sort_keys=True, indent=4)
+    print(text)
+
+#The log in credentials for the api user that will be making the calls
+API_KEY = 'squ_92faf4c6fdc6d834b5c59f2ffa7418a95830e69c'
+USER_AGENT = 'api_user'
+USER_PASS = 'apiTesting'
+
+basicAuth = HTTPBasicAuth(USER_AGENT, USER_PASS)
+
+payload = {
+    'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
+    'ps': 1, 
+    'severities': 'BLOCKER',   
+}
+
+print("Getting data from sonarqube server runnning in docker:")
+
+response = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=payload)
+
+print("Response status code:", response.status_code)
+jprint(response.json()) #uses that jprint function defined above
