@@ -7,13 +7,13 @@ def jprint(obj):
     text = json.dumps(obj, sort_keys=True, indent=4)
     print(text)
 
-#The log in credentials for the api user that will be making the calls
-API_KEY = 'squ_92faf4c6fdc6d834b5c59f2ffa7418a95830e69c'
-USER_AGENT = 'api_user'
-USER_PASS = 'apiTesting'
+#The log in credentials for the api user that will be making the calls from SonarQube
+API_KEY_SQ = 'squ_92faf4c6fdc6d834b5c59f2ffa7418a95830e69c'
+USER_AGENT_SQ = 'api_user'
+USER_PASS_SQ = 'apiTesting'
 
 #simple authentication for sonarqube
-basicAuth = HTTPBasicAuth(USER_AGENT, USER_PASS)
+basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
 issuesPayload = {
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
@@ -50,3 +50,21 @@ def getIssues(jsonData):
   
 issueData = getIssues(jsonIssueData)
 print(issueData)
+
+print("-----Working with GitLab API-----")
+
+#This contains the private token to authorize api access
+gitlabHeaders = {
+    'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe'
+}
+
+gitlabPayload = {
+    'id': 46477662,
+    'title': 'testIssue'
+}
+
+issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                          headers=gitlabHeaders, params=gitlabPayload)
+
+print("issuePost status code:", issuePost.status_code)
+jprint(issuePost.json())
