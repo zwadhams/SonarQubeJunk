@@ -1,3 +1,4 @@
+import re
 import requests
 import json
 from requests.auth import HTTPBasicAuth
@@ -17,7 +18,7 @@ basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
 issuesPayload = {
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 2, 
+    'ps': 1, 
     'types': 'BUG,VULNERABILITY',
     'severities': 'BLOCKER,CRITICAL',   
 }
@@ -32,14 +33,6 @@ jprint(issuesResponse.json()) #uses the jprint function defined above to make th
 #only stores the data to be worked with if 
 jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an issue with the response. Status code", issuesResponse.status_code)
 print("-----Working with issue data to gather relevant info-----")
-
-""" example parsing of json
-if json_data and 'hoststatuslist' in json_data:
-    if 'hoststatus' in json_data['hoststatuslist']:
-        for hoststatus in json_data['hoststatuslist']['hoststatus']:
-            host_name = hoststatus.get('name')
-            status_text = hoststatus.get('status_text')
-"""
 
 def getIssues(jsonData):
     allIssues = []
@@ -57,14 +50,19 @@ print("-----Working with GitLab API-----")
 gitlabHeaders = {
     'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe'
 }
+#TODO- Iterate through all issues and create posts for each
 
 gitlabPayload = {
-    'id': 46477662,
-    'title': 'testIssue'
+    'id': 46477662, #This is the id of the gitlab repo
+    'title': 'SonarQube - {} : {} '.format(issueData[0].get('type').lower(), issueData[0].get('message').lower()),
+    'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}".format(issueData[0].get('type').lower(), issueData[0].get('message').lower()[:-1], issueData[0].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[0].get('component')))
 }
+
+#potentially look at getting internal api stuff in api/sources/lines
+
+print(gitlabPayload)
 
 issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
                           headers=gitlabHeaders, params=gitlabPayload)
 
 print("issuePost status code:", issuePost.status_code)
-jprint(issuePost.json())
