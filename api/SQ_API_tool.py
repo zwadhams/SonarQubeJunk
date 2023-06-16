@@ -9,6 +9,7 @@ def jprint(obj):
     print(text)
 
 #The log in credentials for the api user that will be making the calls from SonarQube
+#All of the below values should not be stored in plaintext, these are just for the demo
 API_KEY_SQ = 'squ_92faf4c6fdc6d834b5c59f2ffa7418a95830e69c'
 USER_AGENT_SQ = 'api_user'
 USER_PASS_SQ = 'apiTesting'
@@ -16,23 +17,27 @@ USER_PASS_SQ = 'apiTesting'
 #simple authentication for sonarqube
 basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
-issuesPayload = {
+issuesPayload = { #contains all of the parameters for the get request from sonarqube.
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1, 
+    'ps': 2, 
     'types': 'BUG,VULNERABILITY',
-    'severities': 'BLOCKER,CRITICAL',   
+    'severities': 'BLOCKER,CRITICAL',
+    'statuses': 'OPEN' 
 }
 
 print("-----Getting data from sonarqube server runnning in docker:-----")
 
-print("-----Getting issues with a severity of ??????-----")
+print("-----Getting bugs and vulnerabilities with severities of blocker or critical -----")
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
 print("issuesResponse status code:", issuesResponse.status_code)
 jprint(issuesResponse.json()) #uses the jprint function defined above to make the output nice
 
 #only stores the data to be worked with if 
 jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an issue with the response. Status code", issuesResponse.status_code)
+print("Total number of issues detected:", jsonIssueData.get('total'))
 print("-----Working with issue data to gather relevant info-----")
+
+
 
 def getIssues(jsonData):
     allIssues = []
@@ -50,19 +55,18 @@ print("-----Working with GitLab API-----")
 gitlabHeaders = {
     'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe'
 }
-#TODO- Iterate through all issues and create posts for each
 
-gitlabPayload = {
-    'id': 46477662, #This is the id of the gitlab repo
-    'title': 'SonarQube - {} : {} '.format(issueData[0].get('type').lower(), issueData[0].get('message').lower()),
-    'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}".format(issueData[0].get('type').lower(), issueData[0].get('message').lower()[:-1], issueData[0].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[0].get('component')))
-}
+for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
+    gitlabPayload = {
+        'id': 46477662, #This is the id of the gitlab repo
+        'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
+        'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')))
+    }
 
-#potentially look at getting internal api stuff in api/sources/lines
+    #TODO- look at getting internal api stuff in api/sources/lines
 
-print(gitlabPayload)
+    print(gitlabPayload)
 
-issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-                          headers=gitlabHeaders, params=gitlabPayload)
-
-print("issuePost status code:", issuePost.status_code)
+    issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                            headers=gitlabHeaders, params=gitlabPayload)
+    print("issuePost status code:", issuePost.status_code)
