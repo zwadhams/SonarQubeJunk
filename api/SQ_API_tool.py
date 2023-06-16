@@ -19,10 +19,12 @@ basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
 issuesPayload = { #contains all of the parameters for the get request from sonarqube.
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 2, 
+    'ps': 1, 
     'types': 'BUG,VULNERABILITY',
     'severities': 'BLOCKER,CRITICAL',
-    'statuses': 'OPEN' 
+    'statuses': 'OPEN'
+    #Can get detailed info about a rule by using GET api/rules/show with the key parameer
+
 }
 
 print("-----Getting data from sonarqube server runnning in docker:-----")
@@ -33,11 +35,9 @@ print("issuesResponse status code:", issuesResponse.status_code)
 jprint(issuesResponse.json()) #uses the jprint function defined above to make the output nice
 
 #only stores the data to be worked with if 
-jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an issue with the response. Status code", issuesResponse.status_code)
+jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an problem with the response. Status code", issuesResponse.status_code)
 print("Total number of issues detected:", jsonIssueData.get('total'))
 print("-----Working with issue data to gather relevant info-----")
-
-
 
 def getIssues(jsonData):
     allIssues = []
@@ -50,23 +50,35 @@ issueData = getIssues(jsonIssueData)
 print(issueData)
 
 print("-----Working with GitLab API-----")
-
 #This contains the private token to authorize api access
 gitlabHeaders = {
     'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe'
 }
 
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
+
+    #will get detailed info about the rule that has been violated
+    rulesPayload = {
+        'key': issueData[i].get('rule')
+    }
+
+    ruleInfoResponse = requests.get("http://localhost:9000/api/rules/show", auth=basicAuth, params=rulesPayload)
+    print("ruleInfoResponse status code:", ruleInfoResponse.status_code)
+    jprint(ruleInfoResponse.json())
+
+    #ruleData = ruleInfoResponse.json() if ruleInfoResponse and ruleInfoResponse.status_code == 200 else print("There was an problem with the response. Status code", ruleInfoResponse.status_code)
+
+
     gitlabPayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
         'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')))
     }
 
-    #TODO- look at getting internal api stuff in api/sources/lines
+    #TODO- look at getting internal api stuff in api/sources/lines to better fill out 
 
     print(gitlabPayload)
 
-    issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-                            headers=gitlabHeaders, params=gitlabPayload)
-    print("issuePost status code:", issuePost.status_code)
+    #issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+    #                        headers=gitlabHeaders, params=gitlabPayload)
+    #print("issuePost status code:", issuePost.status_code)
