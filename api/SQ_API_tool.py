@@ -32,7 +32,7 @@ print("-----Getting data from sonarqube server runnning in docker:-----")
 print("-----Getting bugs and vulnerabilities with severities of blocker or critical -----")
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
 print("issuesResponse status code:", issuesResponse.status_code)
-jprint(issuesResponse.json()) #uses the jprint function defined above to make the output nice
+#jprint(issuesResponse.json()) #uses the jprint function defined above to make the output nice
 
 #only stores the data to be worked with if 
 jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an problem with the response. Status code", issuesResponse.status_code)
@@ -47,12 +47,12 @@ def getIssues(jsonData):
         return allIssues
   
 issueData = getIssues(jsonIssueData)
-print(issueData)
 
 print("-----Working with GitLab API-----")
 #This contains the private token to authorize api access
 gitlabHeaders = {
-    'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe'
+    'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe',
+    'Content-Type': 'application/json'
 }
 
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
@@ -64,21 +64,24 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 
     ruleInfoResponse = requests.get("http://localhost:9000/api/rules/show", auth=basicAuth, params=rulesPayload)
     print("ruleInfoResponse status code:", ruleInfoResponse.status_code)
-    jprint(ruleInfoResponse.json())
 
-    #ruleData = ruleInfoResponse.json() if ruleInfoResponse and ruleInfoResponse.status_code == 200 else print("There was an problem with the response. Status code", ruleInfoResponse.status_code)
-
+    ruleData = ruleInfoResponse.json() if ruleInfoResponse and ruleInfoResponse.status_code == 200 else print("There was an problem with the response. Status code", ruleInfoResponse.status_code)
 
     gitlabPayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
-        'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')))
+        'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n Rule Description: {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), ruleData['rule']['mdDesc'])
     }
 
-    #TODO- look at getting internal api stuff in api/sources/lines to better fill out 
+    #Compresses the payload into json to avoid a 414 post error 
+    jsonPayload = json.dumps(gitlabPayload, indent=1)
 
-    print(gitlabPayload)
+    #TODO- look at getting internal api stuff in api/sources/lines to better fill out description
 
-    #issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-    #                        headers=gitlabHeaders, params=gitlabPayload)
-    #print("issuePost status code:", issuePost.status_code)
+    print("-----Posting created issue to GitLab-----")
+#comment the below lines to stop from posting issues, useful to debug
+    issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                            headers=gitlabHeaders, data=jsonPayload)
+    print("issuePost status code:", issuePost.status_code)
+    if issuePost.status_code == 201:
+        print("-----SUCCESS, GitLab issue created successfully-----")
