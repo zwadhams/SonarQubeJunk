@@ -56,6 +56,8 @@ gitlabHeaders = {
     'Content-Type': 'application/json'
 }
 
+#TODO- Close all SQ issues that are grabbed in order to prevent duplicates 
+
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
 
     #TODO- look at getting code snippets in GET api/sources/issue_snippets to better fill out description
