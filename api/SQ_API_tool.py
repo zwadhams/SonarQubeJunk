@@ -74,12 +74,13 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     #the first key needed to get the code is a long string, this gets it easier and stores it for later use as issueFile
     issueFile = keyList[0]
     numSnippetLines = len(snippetData[issueFile]['sources'])
-    htmlSource = ""
+    mdSource = "<pre><code>"
     for line in range(numSnippetLines):
-        htmlSource = htmlSource + "  \n" + snippetData[issueFile]['sources'][line]['code']
-        
+        mdSource = mdSource + '[' + str(snippetData[issueFile]['sources'][line]['line']) + ']' + markdownify.markdownify(snippetData[issueFile]['sources'][line]['code']) + "  \n"
+    mdSource = mdSource + "</code></pre>"
     jprint(snippetData[issueFile]['sources'][1])
-    mdSource = markdownify.markdownify(htmlSource)
+    jprint(snippetData[issueFile]['sources'][2])
+    #mdSource = markdownify.markdownify(htmlSource)
     print(mdSource)
 
 
@@ -102,6 +103,7 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 
     #Compresses the payload into json to avoid a 414 post error 
     jsonPayload = json.dumps(gitlabPayload, indent=1)
+    #jprint(jsonPayload)
 
     print("-----Posting created issue to GitLab-----")
 #comment the below lines to stop from posting issues, useful to debug
