@@ -2,6 +2,7 @@ import re
 import requests
 import json
 from requests.auth import HTTPBasicAuth
+import markdownify
 
 #function to format json better
 def jprint(obj):
@@ -68,13 +69,18 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     print("snippetResponse status code:", snippetResponse.status_code)
 
     snippetData = snippetResponse.json()
-
     keyList = list(snippetData.keys())
 
     #the first key needed to get the code is a long string, this gets it easier and stores it for later use as issueFile
     issueFile = keyList[0]
-    print(issueFile)
-    jprint(snippetData[issueFile])
+    numSnippetLines = len(snippetData[issueFile]['sources'])
+    htmlSource = ""
+    for line in range(numSnippetLines):
+        htmlSource = htmlSource + "  \n" + snippetData[issueFile]['sources'][line]['code']
+        
+    jprint(snippetData[issueFile]['sources'][1])
+    mdSource = markdownify.markdownify(htmlSource)
+    print(mdSource)
 
 
     #will get detailed info about the rule that has been violated
@@ -91,7 +97,7 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     gitlabPayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
-        'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), snippetData['sources'], ruleData['rule']['mdDesc'])
+        'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower()[:-1], issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), mdSource, ruleData['rule']['mdDesc'])
     }
 
     #Compresses the payload into json to avoid a 414 post error 
@@ -99,10 +105,10 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 
     print("-----Posting created issue to GitLab-----")
 #comment the below lines to stop from posting issues, useful to debug
-    #issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-    #                        headers=gitlabHeaders, data=jsonPayload)
-    #print("issuePost status code:", issuePost.status_code)
-    #if issuePost.status_code == 201:
-    #    print("-----SUCCESS, GitLab issue created successfully-----")
+    issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                            headers=gitlabHeaders, data=jsonPayload)
+    print("issuePost status code:", issuePost.status_code)
+    if issuePost.status_code == 201:
+        print("-----SUCCESS, GitLab issue created successfully-----")
 
 print("SQ/GitLab API Tool Complete")
