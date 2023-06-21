@@ -27,14 +27,16 @@ issuesPayload = { #contains all of the parameters for the get request from sonar
 }
 
 print("-----Getting data from sonarqube server runnning in docker:-----")
-
 print("-----Getting bugs and vulnerabilities with severities of blocker or critical -----")
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
 print("issuesResponse status code:", issuesResponse.status_code)
-#jprint(issuesResponse.json()) #uses the jprint function defined above to make the output nice
 
-#only stores the data to be worked with if 
-jsonIssueData = issuesResponse.json() if issuesResponse and issuesResponse.status_code == 200 else print("There was an problem with the response. Status code", issuesResponse.status_code)
+#only stores the data to be worked with if it was successfully gathered, terminates if not 
+if issuesResponse and issuesResponse.status_code == 200:
+    jsonIssueData = issuesResponse.json() 
+else: 
+    print("There was an problem with the response. Status code", issuesResponse.status_code, "TERMINATING PROGRAM")
+    quit()
 print("Total number of issues detected:", jsonIssueData.get('total'))
 print("-----Working with issue data to gather relevant info-----")
 
