@@ -24,8 +24,6 @@ issuesPayload = { #contains all of the parameters for the get request from sonar
     'types': 'BUG,VULNERABILITY',
     'severities': 'BLOCKER,CRITICAL',
     'statuses': 'OPEN'
-    #Can get detailed info about a rule by using GET api/rules/show with the key parameer
-
 }
 
 print("-----Getting data from sonarqube server runnning in docker:-----")
@@ -56,7 +54,9 @@ gitlabHeaders = {
     'Content-Type': 'application/json'
 }
 
-#TODO- Close all SQ issues that are grabbed in order to prevent duplicates 
+#TODO- Close all SQ issues that are grabbed in order to prevent duplicates
+# When a new analysis is kicked off any non fixed issues will be set to re-opened status 
+# Using this, I could force them to be closed via a bulk edit and they already will be ignored based on use of the open tag in the issuesPayload
 
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
 
@@ -82,9 +82,7 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     mdSource = mdSource + "</code></pre>"
     jprint(snippetData[issueFile]['sources'][1])
     jprint(snippetData[issueFile]['sources'][2])
-    #mdSource = markdownify.markdownify(htmlSource)
     print(mdSource)
-
 
     #will get detailed info about the rule that has been violated
     rulesPayload = {
