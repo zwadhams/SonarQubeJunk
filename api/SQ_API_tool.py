@@ -20,13 +20,13 @@ basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
 issuesPayload = { #contains all of the parameters for the get request from sonarqube.
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1, 
+    'ps': 5, #the number of issue that will be created
     'types': 'BUG,VULNERABILITY',
     'severities': 'BLOCKER,CRITICAL',
     'statuses': 'OPEN'
 }
 
-print("-----Getting data from sonarqube server runnning in docker:-----")
+print("-----Getting data from SonarQube-----")
 print("-----Getting bugs and vulnerabilities with severities of blocker or critical -----")
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
 print("issuesResponse status code:", issuesResponse.status_code)
@@ -55,10 +55,6 @@ gitlabHeaders = {
     'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe',
     'Content-Type': 'application/json'
 }
-
-#TODO- Close all SQ issues that are grabbed in order to prevent duplicates
-# When a new analysis is kicked off any non fixed issues will be set to re-opened status 
-# Using this, I could force them to be closed via a bulk edit and they already will be ignored based on use of the open tag in the issuesPayload
 
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found
 
@@ -106,10 +102,25 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 
     print("-----Posting created issue to GitLab-----")
 #comment the below lines to stop from posting issues, useful to debug
-    issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-                            headers=gitlabHeaders, data=jsonPayload)
-    print("issuePost status code:", issuePost.status_code)
-    if issuePost.status_code == 201:
-        print("-----SUCCESS, GitLab issue created successfully-----")
+    #issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+    #                        headers=gitlabHeaders, data=jsonPayload)
+    #print("issuePost status code:", issuePost.status_code)
+    #if issuePost.status_code == 201:
+    #    print("-----SUCCESS, GitLab issue created successfully-----")
+
+#TODO- Close all SQ issues that are grabbed in order to prevent duplicates
+# When a new analysis is kicked off any non fixed issues will be set to re-opened status 
+# Using this, I could force them to be closed via a bulk_change and they already will be ignored based on use of the open tag in the issuesPayload
+print("-----Closing out issues in SonarQube-----")
+issueKeys = []
+for issue in range(len(issueData)):
+    issueKeys.append(issueData[issue].get('key'))
+
+closePayload = {
+    'issues': issueKeys
+}
+jprint(issueKeys)
+
+#bulkCloseRequest = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=closePayload)
 
 print("SQ/GitLab API Tool Complete")
