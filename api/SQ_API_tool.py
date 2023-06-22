@@ -82,9 +82,6 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     for line in range(numSnippetLines):
         mdSource = mdSource + '[' + str(snippetData[issueFile]['sources'][line]['line']) + ']' + markdownify.markdownify(snippetData[issueFile]['sources'][line]['code']) + "  \n"
     mdSource = mdSource + "</code></pre>"
-    jprint(snippetData[issueFile]['sources'][1])
-    jprint(snippetData[issueFile]['sources'][2])
-    print(mdSource)
 
     #will get detailed info about the rule that has been violated
     rulesPayload = {
