@@ -5,18 +5,26 @@ from requests.auth import HTTPBasicAuth
 import markdownify
 
 #-----HELPER FUNCTIONS-----
-#function to format json better
+#formats json in readable manner
 def jprint(obj):
     text = json.dumps(obj, sort_keys=True, indent=4)
     print(text)
 
-#function to get issues from json response in SQ
+#gets issues from json response in SQ
 def getIssues(jsonData):
     allIssues = []
     if jsonData and 'issues' in jsonData:
         for issue in jsonData['issues']:
             allIssues.append(issue)
         return allIssues
+
+#gets hotspots from json response in SQ
+def getHotspots(jsonData):
+    allHotspots = []
+    if jsonData and 'hotspots' in jsonData:
+        for hotspot in jsonData['hotspots']:
+            allHotspots.append(hotspot)
+        return allHotspots
     
 #gets detailed info about the rule that an issue has violated
 def getRuleInfo(issueKey):
@@ -35,14 +43,11 @@ def getSourceSnippets(issueKey, issueLine):
     }
     snippetResponse = requests.get("http://localhost:9000/api/sources/issue_snippets", auth=basicAuth, params=snippetPayload)
     print("snippetResponse status code:", snippetResponse.status_code)
-
     snippetData = snippetResponse.json()
     keyList = list(snippetData.keys())
-    jprint(snippetData)
 
     #the first key needed to get the code is a long string, this gets it easier and stores it for later use as issueFile
     #the source code is sent and recieved through https by default, this should mitigate some security concerns 
-
     issueFile = keyList[0]
     numSnippetLines = len(snippetData[issueFile]['sources'])
     mdSource = "<pre>"
@@ -53,7 +58,6 @@ def getSourceSnippets(issueKey, issueLine):
             mdSource = mdSource + '[' + str(snippetData[issueFile]['sources'][line]['line']) + ']' + markdownify.markdownify(snippetData[issueFile]['sources'][line]['code']) + "  \n"
     mdSource = mdSource + "</pre>"
     return mdSource
-
 #-----END HELPER FUNCTIONS-----
 
 #The log in credentials for the api user that will be making the calls from SonarQube
@@ -92,7 +96,7 @@ print("-----Working with issue data to gather relevant info-----")
   
 issueData = getIssues(jsonIssueData)
 
-print("-----Working with GitLab API-----")
+print("-----Posting Issues to GitLab-----")
 #This contains the private token to authorize api access, this should not be stored in plaintext outside of demo
 gitlabHeaders = {
     'PRIVATE-TOKEN': 'glpat-SQg8v983_MzPFhbK3rBe',
@@ -102,18 +106,18 @@ gitlabHeaders = {
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found    
 
     #assembles the payload to be sent in the API POST
-    gitlabPayload = {
+    gitlabIssuePayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
         'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower(), issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), getSourceSnippets(issueData[i].get('key'), issueData[i].get('line')), getRuleInfo(issueData[i].get('rule')))
     }
     #Compresses the payload into json to avoid a 414 post error 
-    jsonPayload = json.dumps(gitlabPayload, indent=1)
+    jsonIssuePayload = json.dumps(gitlabIssuePayload, indent=1)
 
     print("-----Posting created issue to GitLab-----")
 #comment the below lines to stop from posting issues, useful to debug
     issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-                           headers=gitlabHeaders, data=jsonPayload)
+                           headers=gitlabHeaders, data=jsonIssuePayload)
     print("issuePost status code:", issuePost.status_code)
     if issuePost.status_code == 201:
         print("-----SUCCESS, GitLab issue created successfully-----")
@@ -135,11 +139,26 @@ print("assignRequest status code:", assignRequest.status_code)
 print("-----Getting security hotspots-----")
 hotspotPayload = {
     'projectKey': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1
+    'ps': 1 #number of issues to create
 }
 hotspotResponse = requests.get("http://localhost:9000/api/hotspots/search", auth=basicAuth, params=hotspotPayload)
-jprint(hotspotResponse.json())
+hotspotData = getHotspots(hotspotResponse.json())
+jprint(hotspotData)
+print("Total number of security hotspots detected:", len(hotspotData))
 
-#can use existing rule code to get info, turn that into a function 
+for hotspot in range(len(hotspotData)):
+    gitlabHotspotPayload = {
+        'id': 46477662, #This is the id of the gitlab repo
+        'title': 'SonarQube - security hotspot : {} '.format(hotspotData[hotspot].get('message').lower()),
+        'description': "SonarQube has detected a security hotspot and has generated a report  \n  \n Hotspot text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(hotspotData[hotspot].get('message').lower(), hotspotData[hotspot].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", hotspotData[hotspot].get('component')), getSourceSnippets(hotspotData[hotspot].get('key'), hotspotData[hotspot].get('line')), getRuleInfo(hotspotData[hotspot].get('ruleKey')))
+    }
+    print(gitlabHotspotPayload)
+    jsonHotspotPayload = json.dumps(gitlabHotspotPayload, indent=1)
+
+    hotspotPost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                           headers=gitlabHeaders, data=jsonHotspotPayload)
+    print("issuePost status code:", issuePost.status_code)
+    if issuePost.status_code == 201:
+        print("-----SUCCESS, GitLab issue created successfully-----")
 
 print("SQ/GitLab API Tool Complete")
