@@ -108,7 +108,7 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     #assembles the payload to be sent in the API POST
     gitlabIssuePayload = {
         'id': 46477662, #This is the id of the gitlab repo
-        'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').lower(), issueData[i].get('message').lower()),
+        'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').upper(), issueData[i].get('message').lower()),
         'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower(), issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), getSourceSnippets(issueData[i].get('key'), issueData[i].get('line')), getRuleInfo(issueData[i].get('rule')))
     }
     #Compresses the payload into json to avoid a 414 post error 
@@ -122,8 +122,33 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     if issuePost.status_code == 201:
         print("-----SUCCESS, GitLab issue created successfully-----")
 
+#gets security hotspots 
+print("-----Getting security hotspots-----")
+hotspotPayload = {
+    'projectKey': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
+    'ps': 2 #number of issues to create
+}
+hotspotResponse = requests.get("http://localhost:9000/api/hotspots/search", auth=basicAuth, params=hotspotPayload)
+hotspotData = getHotspots(hotspotResponse.json())
+print("Total number of security hotspots detected:", len(hotspotData))
+
+for hotspot in range(len(hotspotData)):
+    gitlabHotspotPayload = {
+        'id': 46477662, #This is the id of the gitlab repo
+        'title': 'SonarQube - SECURITY HOTSPOT : {} '.format(hotspotData[hotspot].get('message').lower()),
+        'description': "SonarQube has detected a security hotspot and has generated a report  \n  \n Hotspot text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(hotspotData[hotspot].get('message').lower(), hotspotData[hotspot].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", hotspotData[hotspot].get('component')), getSourceSnippets(hotspotData[hotspot].get('key'), hotspotData[hotspot].get('line')), getRuleInfo(hotspotData[hotspot].get('ruleKey')))
+    }
+    jsonHotspotPayload = json.dumps(gitlabHotspotPayload, indent=1)
+
+    hotspotPost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
+                           headers=gitlabHeaders, data=jsonHotspotPayload)
+    print("issuePost status code:", issuePost.status_code)
+    if issuePost.status_code == 201:
+        print("-----SUCCESS, GitLab issue created successfully-----")
+
 #Assigns all issues to GitLab SQ user to mark that they have been seen and moved into GitLab
 print("-----Assigning issues to GitLab user in SonarQube-----")
+#bugs and vulnerabilities
 issueKeys = []
 for issue in range(len(issueData)):
     issueKeys.append(issueData[issue].get('key'))
@@ -135,30 +160,14 @@ assignPayload = {
 assignRequest = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=assignPayload)
 print("assignRequest status code:", assignRequest.status_code)
 
-#TODO-Deal with security hotspots in some way. Mostlikely ignore the SQ workflow and just treat them as normal issues. 
-print("-----Getting security hotspots-----")
-hotspotPayload = {
-    'projectKey': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1 #number of issues to create
-}
-hotspotResponse = requests.get("http://localhost:9000/api/hotspots/search", auth=basicAuth, params=hotspotPayload)
-hotspotData = getHotspots(hotspotResponse.json())
-jprint(hotspotData)
-print("Total number of security hotspots detected:", len(hotspotData))
-
+#hotspots
 for hotspot in range(len(hotspotData)):
-    gitlabHotspotPayload = {
-        'id': 46477662, #This is the id of the gitlab repo
-        'title': 'SonarQube - security hotspot : {} '.format(hotspotData[hotspot].get('message').lower()),
-        'description': "SonarQube has detected a security hotspot and has generated a report  \n  \n Hotspot text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(hotspotData[hotspot].get('message').lower(), hotspotData[hotspot].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", hotspotData[hotspot].get('component')), getSourceSnippets(hotspotData[hotspot].get('key'), hotspotData[hotspot].get('line')), getRuleInfo(hotspotData[hotspot].get('ruleKey')))
+    hotspotAssignPayload = {
+    'hotspot': hotspotData[hotspot].get('key'),
+    'assignee': 'GitLab'
     }
-    print(gitlabHotspotPayload)
-    jsonHotspotPayload = json.dumps(gitlabHotspotPayload, indent=1)
+    print(hotspotAssignPayload)
+    hotspotAssignRequest = requests.post("http://localhost:9000/api/hotspots/assign", auth=basicAuth, params=hotspotAssignPayload)
+print("-----All hotspots assigned-----")
 
-    hotspotPost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
-                           headers=gitlabHeaders, data=jsonHotspotPayload)
-    print("issuePost status code:", issuePost.status_code)
-    if issuePost.status_code == 201:
-        print("-----SUCCESS, GitLab issue created successfully-----")
-
-print("SQ/GitLab API Tool Complete")
+print("*****SQ/GitLab API Tool Complete*****")
