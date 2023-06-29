@@ -26,44 +26,15 @@ USER_PASS_SQ = 'apiTesting'
 #simple authentication for sonarqube
 basicAuth = HTTPBasicAuth(USER_AGENT_SQ, USER_PASS_SQ)
 
-"""
-#this block will close out all re-opened issues to clean up the SQ dashboard 
-print("-----Closing Re-Opened SQ Issues")
-
-reOpenedPayload = { 
-    'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 500, 
-    'types': 'BUG,VULNERABILITY',
-    'severities': 'BLOCKER,CRITICAL',
-    'statuses': 'REOPENED'
-}
-reOpenedResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=reOpenedPayload)
-print("Re-OpenedResponse status code:", reOpenedResponse.status_code)
-reOpenedIssues = getIssues(reOpenedResponse.json())
-
-reOpenedKeys = []
-for issue in range(len(reOpenedIssues)):
-    reOpenedKeys.append(reOpenedIssues[issue].get('key'))
-print("-----Found {} Re-Opened issues-----".format(len(reOpenedKeys)))
-joinedReOpenedKeys = ','.join(reOpenedKeys)
-
-closePayload = {
-    'issues': joinedReOpenedKeys,
-    'do_transition': 'resolve' #cannot close re-opened isssues, only resolve 
-}
-reOpenedClose = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=closePayload)
-print("reopenedClose status code:", reOpenedClose.status_code)
-
-"""
 #this block will get the issues we want to create issues in GitLab for 
 print("-----Getting data from SonarQube-----")
-print("-----Getting bugs and vulnerabilities with severities of blocker or critical -----")
+print("-----Getting bugs and vulnerabilities with severities of blocker, critical, or severe -----")
 
 issuesPayload = { #contains all of the parameters for the get request from sonarqube.
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1, #the number of issues that will be created
+    'ps': 1, #the number of issues that will be created, set to 500 max upon deployment
     'types': 'BUG,VULNERABILITY',
-    'severities': 'BLOCKER,CRITICAL',
+    'severities': 'BLOCKER,CRITICAL,SEVERE',
     'statuses': 'OPEN',
     #'assigned': 'false'
 }
@@ -106,7 +77,6 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     issueFile = keyList[0]
     numSnippetLines = len(snippetData[issueFile]['sources'])
     mdSource = "<pre>"
-    print(issueData[i].get('line'))
     for line in range(numSnippetLines): #highlights the line containing the problem code 
         if snippetData[issueFile]['sources'][line]['line']==issueData[i].get('line'):
             mdSource = mdSource + '<mark>' + '[' + str(snippetData[issueFile]['sources'][line]['line']) + ']' + markdownify.markdownify(snippetData[issueFile]['sources'][line]['code']) + "</mark>  \n"
