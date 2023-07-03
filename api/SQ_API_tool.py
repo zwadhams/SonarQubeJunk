@@ -126,7 +126,8 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 print("-----Getting security hotspots-----")
 hotspotPayload = {
     'projectKey': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 2 #number of issues to create
+    'ps': 2, #number of issues to create
+    'status': 'TO_REVIEW'
 }
 hotspotResponse = requests.get("http://localhost:9000/api/hotspots/search", auth=basicAuth, params=hotspotPayload)
 hotspotData = getHotspots(hotspotResponse.json())
@@ -156,18 +157,23 @@ for issue in range(len(issueData)):
 assignPayload = {
     'issues': issueKeys,
     'assign': 'GitLab'
-}
+    }
 assignRequest = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=assignPayload)
 print("assignRequest status code:", assignRequest.status_code)
 
-#hotspots
+#hotspots also need to be set to Reviewed status 
 for hotspot in range(len(hotspotData)):
     hotspotAssignPayload = {
     'hotspot': hotspotData[hotspot].get('key'),
     'assignee': 'GitLab'
     }
-    print(hotspotAssignPayload)
     hotspotAssignRequest = requests.post("http://localhost:9000/api/hotspots/assign", auth=basicAuth, params=hotspotAssignPayload)
+    hotspotReviewPayload = {
+        'hotspot': hotspotData[hotspot].get('key'),
+        'status': 'REVIEWED'
+    }
+    hotspotReviewRequest = requests.post("http://localhost:9000/api/hotspots/change_status", auth=basicAuth, params=hotspotReviewPayload)
+    
 print("-----All hotspots assigned-----")
 
 print("*****SQ/GitLab API Tool Complete*****")
