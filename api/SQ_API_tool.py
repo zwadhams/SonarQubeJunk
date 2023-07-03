@@ -170,7 +170,9 @@ for hotspot in range(len(hotspotData)):
     hotspotAssignRequest = requests.post("http://localhost:9000/api/hotspots/assign", auth=basicAuth, params=hotspotAssignPayload)
     hotspotReviewPayload = {
         'hotspot': hotspotData[hotspot].get('key'),
-        'status': 'REVIEWED'
+        'status': 'REVIEWED',
+        'resolution': 'ACKNOWLEDGED',
+        'comment': 'This hotspot has been moved to a GitLab issue'
     }
     hotspotReviewRequest = requests.post("http://localhost:9000/api/hotspots/change_status", auth=basicAuth, params=hotspotReviewPayload)
     
