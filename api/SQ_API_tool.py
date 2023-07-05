@@ -32,7 +32,6 @@ def getRuleInfo(issueKey):
         'key': issueKey
     }
     ruleInfoResponse = requests.get("http://localhost:9000/api/rules/show", auth=basicAuth, params=rulesPayload)
-    print("ruleInfoResponse status code:", ruleInfoResponse.status_code)
     ruleData = ruleInfoResponse.json() if ruleInfoResponse and ruleInfoResponse.status_code == 200 else print("There was an problem with the response. Status code", ruleInfoResponse.status_code)
     return ruleData['rule']['mdDesc']
 
@@ -42,7 +41,6 @@ def getSourceSnippets(issueKey, issueLine):
         'issueKey': issueKey
     }
     snippetResponse = requests.get("http://localhost:9000/api/sources/issue_snippets", auth=basicAuth, params=snippetPayload)
-    print("snippetResponse status code:", snippetResponse.status_code)
     snippetData = snippetResponse.json()
     keyList = list(snippetData.keys())
 
@@ -83,7 +81,6 @@ issuesPayload = { #contains all of the parameters for the get request from sonar
 }
 
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
-print("issuesResponse status code:", issuesResponse.status_code)
 
 #only stores the data to be worked with if it was successfully gathered, terminates if not 
 if issuesResponse and issuesResponse.status_code == 200:
