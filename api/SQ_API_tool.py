@@ -111,7 +111,6 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
     #Compresses the payload into json to avoid a 414 post error 
     jsonIssuePayload = json.dumps(gitlabIssuePayload, indent=1)
 
-    print("-----Posting created issue to GitLab-----")
 #comment the below lines to stop from posting issues, useful to debug
     issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
                            headers=gitlabHeaders, data=jsonIssuePayload)
