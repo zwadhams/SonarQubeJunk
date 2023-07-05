@@ -75,11 +75,11 @@ print("-----Getting bugs and vulnerabilities with severities of blocker, critica
 
 issuesPayload = { #contains all of the parameters for the get request from sonarqube.
     'componentKeys': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 1, #the number of issues that will be created, set to 500 max upon deployment
+    'ps': 500, #the number of issues that will be created, set to 500 max upon deployment
     'types': 'BUG,VULNERABILITY',
     'severities': 'BLOCKER,CRITICAL,MAJOR',
-    'statuses': 'OPEN',
-    #'assigned': 'false'
+    'statuses': 'OPEN,REOPENED',
+    'assigned': 'false'
 }
 
 issuesResponse = requests.get("http://localhost:9000/api/issues/search", auth=basicAuth, params=issuesPayload)
@@ -126,7 +126,7 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 print("-----Getting security hotspots-----")
 hotspotPayload = {
     'projectKey': 'zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx',
-    'ps': 2, #number of issues to create
+    'ps': 500, #number of issues to create
     'status': 'TO_REVIEW'
 }
 hotspotResponse = requests.get("http://localhost:9000/api/hotspots/search", auth=basicAuth, params=hotspotPayload)
@@ -153,13 +153,15 @@ print("-----Assigning issues to GitLab user in SonarQube-----")
 issueKeys = []
 for issue in range(len(issueData)):
     issueKeys.append(issueData[issue].get('key'))
+formattedKeys = str.join(",", issueKeys) #must be formatted as a string for the API to accept them
 
 assignPayload = {
-    'issues': issueKeys,
+    'issues': formattedKeys,
     'assign': 'GitLab'
     }
 assignRequest = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=assignPayload)
 print("assignRequest status code:", assignRequest.status_code)
+print(assignRequest.text)
 
 #hotspots also need to be set to Reviewed status 
 for hotspot in range(len(hotspotData)):
@@ -177,5 +179,4 @@ for hotspot in range(len(hotspotData)):
     hotspotReviewRequest = requests.post("http://localhost:9000/api/hotspots/change_status", auth=basicAuth, params=hotspotReviewPayload)
     
 print("-----All hotspots assigned-----")
-
 print("*****SQ/GitLab API Tool Complete*****")
