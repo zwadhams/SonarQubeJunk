@@ -118,9 +118,6 @@ for i in range(len(issueData)): #will create an individual issue post in GitLab 
 #comment the below lines to stop from posting issues, useful to debug
     issuePost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
                            headers=gitlabHeaders, data=jsonIssuePayload)
-    print("issuePost status code:", issuePost.status_code)
-    if issuePost.status_code == 201:
-        print("-----SUCCESS, GitLab issue created successfully-----")
 
 #gets security hotspots 
 print("-----Getting security hotspots-----")
@@ -143,9 +140,6 @@ for hotspot in range(len(hotspotData)):
 
     hotspotPost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
                            headers=gitlabHeaders, data=jsonHotspotPayload)
-    print("issuePost status code:", issuePost.status_code)
-    if issuePost.status_code == 201:
-        print("-----SUCCESS, GitLab issue created successfully-----")
 
 #Assigns all issues to GitLab SQ user to mark that they have been seen and moved into GitLab
 print("-----Assigning issues to GitLab user in SonarQube-----")
@@ -160,8 +154,6 @@ assignPayload = {
     'assign': 'GitLab'
     }
 assignRequest = requests.post("http://localhost:9000/api/issues/bulk_change", auth=basicAuth, params=assignPayload)
-print("assignRequest status code:", assignRequest.status_code)
-print(assignRequest.text)
 
 #hotspots also need to be set to Reviewed status 
 for hotspot in range(len(hotspotData)):
