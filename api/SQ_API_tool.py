@@ -1,6 +1,6 @@
-import re
-import requests
+import re 
 import json
+import requests
 from requests.auth import HTTPBasicAuth
 import markdownify
 
@@ -101,11 +101,31 @@ gitlabHeaders = {
 }
 
 for i in range(len(issueData)): #will create an individual issue post in GitLab for each SQ issue found    
+    #for labeling purposes
+    labels = 'app: sonarqube,State: Dev To Do,'
+    if issueData[i].get('type') == 'BUG':
+        labels = labels + 'type: bug,'
+        if issueData[i].get('severity') == 'BLOCKER':
+            labels = labels + 'priority: critical'
+        elif issueData[i].get('severity') == 'CRITICAL':
+            labels = labels + 'priority: high'
+        elif issueData[i].get('severity') == 'MAJOR':
+            labels = labels + 'priority: medium'
+    
+    elif issueData[i].get('type') == 'VULNERABILITY':
+        labels = labels + 'type: vulnerability,'
+        if issueData[i].get('severity') == 'BLOCKER':
+            labels = labels + 'priority: critical'
+        elif issueData[i].get('severity') == 'CRITICAL':
+            labels = labels + 'priority: high'
+        elif issueData[i].get('severity') == 'MAJOR':
+            labels = labels + 'priority: medium'
 
     #assembles the payload to be sent in the API POST
     gitlabIssuePayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - {} : {} '.format(issueData[i].get('type').upper(), issueData[i].get('message').lower()),
+        'labels': labels,
         'description': "SonarQube has detected an issue and generated an automatic bug or vulnerability report  \n  \n {} text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(issueData[i].get('type').lower(), issueData[i].get('message').lower(), issueData[i].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", issueData[i].get('component')), getSourceSnippets(issueData[i].get('key'), issueData[i].get('line')), getRuleInfo(issueData[i].get('rule')))
     }
     #Compresses the payload into json to avoid a 414 post error 
@@ -130,10 +150,10 @@ for hotspot in range(len(hotspotData)):
     gitlabHotspotPayload = {
         'id': 46477662, #This is the id of the gitlab repo
         'title': 'SonarQube - SECURITY HOTSPOT : {} '.format(hotspotData[hotspot].get('message').lower()),
+        'labels': 'app: sonarqube,State: Dev To Do,type: security hotspot,priority: minor',
         'description': "SonarQube has detected a security hotspot and has generated a report  \n  \n Hotspot text: '{}' at line {} in file {}  \n  \n <h3>Code Snippet</h3>  \n  {}  \n  \n <h2>Rule Description:</h2> {}".format(hotspotData[hotspot].get('message').lower(), hotspotData[hotspot].get('line'), re.sub("zwadhams_Embedded-Systems-Robotics_AYibu6FRayQ69Q6kvVmx:", "", hotspotData[hotspot].get('component')), getSourceSnippets(hotspotData[hotspot].get('key'), hotspotData[hotspot].get('line')), getRuleInfo(hotspotData[hotspot].get('ruleKey')))
     }
     jsonHotspotPayload = json.dumps(gitlabHotspotPayload, indent=1)
-
     hotspotPost = requests.post("https://gitlab.com/api/v4/projects/46477662/issues",
                            headers=gitlabHeaders, data=jsonHotspotPayload)
 
